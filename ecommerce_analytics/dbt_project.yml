@@ -1,0 +1,107 @@
+name: 'ecommerce_analytics'
+version: '1.0.0'
+config-version: 2
+
+# This setting configures which "profile" dbt uses for this project.
+profile: 'ecommerce_analytics'
+
+# These configurations specify where dbt should look for different types of files.
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Configuring models
+models:
+  ecommerce_analytics:
+    # Bronze layer - raw data ingestion
+    bronze:
+      +materialized: view
+      +schema: bronze
+      +tags: ["bronze", "raw"]
+    
+    # Silver layer - cleaned and standardized
+    silver:
+      +materialized: table
+      +schema: silver
+      +tags: ["silver", "staging"]
+      
+      # Incremental models for large tables
+      staging:
+        stg_orders:
+          +materialized: incremental
+          +unique_key: order_id
+          +on_schema_change: "append_new_columns"
+        stg_order_items:
+          +materialized: incremental
+          +unique_key: order_item_id
+          +on_schema_change: "append_new_columns"
+        stg_web_events:
+          +materialized: incremental
+          +unique_key: event_id
+          +on_schema_change: "append_new_columns"
+    
+    # Gold layer - business logic
+    gold:
+      +materialized: table
+      +schema: gold
+      +tags: ["gold", "production"]
+      
+      # Dimensional models
+      dimensions:
+        +tags: ["dimension"]
+        dim_customers:
+          +materialized: table
+        dim_products:
+          +materialized: table
+        dim_dates:
+          +materialized: table
+      
+      # Fact tables
+      facts:
+        +tags: ["fact"]
+        +materialized: incremental
+        +unique_key: ['order_id', 'product_id']
+        fct_orders:
+          +materialized: incremental
+          +unique_key: order_id
+        fct_order_items:
+          +materialized: incremental
+          +unique_key: order_item_id
+      
+      # Business marts
+      marts:
+        +tags: ["mart", "reporting"]
+        +materialized: table
+
+# Seeds configuration
+seeds:
+  ecommerce_analytics:
+    +schema: seeds
+    +tags: ["seeds"]
+
+# Snapshot configuration
+snapshots:
+  ecommerce_analytics:
+    +target_schema: snapshots
+    +strategy: timestamp
+    +unique_key: id
+    +updated_at: updated_at
+
+# Documentation
+docs-paths: ["docs"]
+
+# Testing
+vars:
+  # Date range for incremental models
+  start_date: '2024-01-01'
+  
+  # Test thresholds
+  max_null_rate: 0.05
+  min_row_count: 10

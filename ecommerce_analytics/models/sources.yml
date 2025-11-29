@@ -1,0 +1,133 @@
+version: 2
+
+sources:
+  - name: bronze
+    description: "Raw data from source systems loaded into Snowflake Bronze layer"
+    database: ECOMMERCE_PROD
+    schema: bronze
+    
+    tables:
+      - name: raw_customers
+        description: "Customer master data from CRM system"
+        columns:
+          - name: customer_id
+            description: "Unique identifier for customer"
+            tests:
+              - not_null
+              - unique
+          - name: email
+            description: "Customer email address"
+            tests:
+              - not_null
+          - name: registration_date
+            description: "Date when customer registered"
+          - name: customer_segment
+            description: "Customer segmentation (Regular, Premium, VIP)"
+          - name: _loaded_at
+            description: "Timestamp when record was loaded"
+      
+      - name: raw_products
+        description: "Product catalog from inventory management system"
+        columns:
+          - name: product_id
+            description: "Unique identifier for product"
+            tests:
+              - not_null
+              - unique
+          - name: product_name
+            description: "Product name"
+          - name: category
+            description: "Product category"
+          - name: price
+            description: "Current selling price"
+          - name: cost
+            description: "Product cost"
+          - name: is_active
+            description: "Whether product is currently available"
+      
+      - name: raw_orders
+        description: "Order transactions from order management system"
+        loaded_at_field: _loaded_at
+        freshness:
+          warn_after: {count: 12, period: hour}
+          error_after: {count: 24, period: hour}
+        columns:
+          - name: order_id
+            description: "Unique identifier for order"
+            tests:
+              - not_null
+              - unique
+          - name: customer_id
+            description: "Foreign key to customers"
+            tests:
+              - not_null
+          - name: order_date
+            description: "Timestamp when order was placed"
+          - name: order_status
+            description: "Current order status"
+          - name: order_total
+            description: "Total order amount"
+      
+      - name: raw_order_items
+        description: "Line items for each order"
+        loaded_at_field: _loaded_at
+        freshness:
+          warn_after: {count: 12, period: hour}
+          error_after: {count: 24, period: hour}
+        columns:
+          - name: order_item_id
+            description: "Unique identifier for order item"
+            tests:
+              - not_null
+              - unique
+          - name: order_id
+            description: "Foreign key to orders"
+            tests:
+              - not_null
+          - name: product_id
+            description: "Foreign key to products"
+            tests:
+              - not_null
+          - name: quantity
+            description: "Quantity ordered"
+          - name: unit_price
+            description: "Price per unit"
+          - name: line_total
+            description: "Total for this line item"
+      
+      - name: raw_web_events
+        description: "Clickstream data from web analytics"
+        loaded_at_field: _loaded_at
+        freshness:
+          warn_after: {count: 6, period: hour}
+          error_after: {count: 12, period: hour}
+        columns:
+          - name: event_id
+            description: "Unique identifier for event"
+            tests:
+              - not_null
+              - unique
+          - name: session_id
+            description: "Session identifier"
+          - name: customer_id
+            description: "Customer ID (null for anonymous users)"
+          - name: event_timestamp
+            description: "When the event occurred"
+          - name: event_type
+            description: "Type of event (page_view, add_to_cart, purchase, etc.)"
+          - name: product_id
+            description: "Product involved in event (if applicable)"
+      
+      - name: raw_inventory_snapshots
+        description: "Daily inventory snapshots from warehouse management"
+        columns:
+          - name: snapshot_id
+            description: "Unique identifier for snapshot"
+          - name: product_id
+            description: "Foreign key to products"
+          - name: snapshot_date
+            description: "Date of snapshot"
+          - name: quantity_on_hand
+            description: "Physical inventory count"
+          - name: quantity_available
+            description: "Available for sale"
