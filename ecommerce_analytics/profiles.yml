@@ -1,0 +1,16 @@
+ecommerce_dbt:
+  target: dev
+  outputs:
+    dev:
+      type: snowflake
+      role: ACCOUNTADMIN
+      warehouse: COMPUTE_WH
+      database: ECOMMERCE_DEV
+      schema: BRONZE
+
+    prod:
+      type: snowflake
+      role: ACCOUNTADMIN
+      warehouse: COMPUTE_WH
+      database: ECOMMERCE_PROD
+      schema: BRONZE
